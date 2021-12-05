@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from fastapi import FastAPI, Query
 from enum import Enum
 from pydantic import BaseModel
@@ -30,9 +30,11 @@ async def get_model(model_name: ModelName):
     
     return {"model_name": model_name, "message": "Have some residuals"}
 
+'''
 @app.get("/items/")
 async def read_item(skip: int = 0, limit: int = 10):
     return fake_items_db[skip : skip + limit]
+'''
 
 '''
 @app.get("/items/{item_id}") # receives HTTP requests
@@ -87,11 +89,115 @@ async def create_item(item_id: int, item: Item, q: Optional[str] = None):
         result.update({"q":q})
     return result
 
+'''Additional validation
+@app.get("/items/")
+async def read_items(q: Optional[str] = Query(None, max_length=50)):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+'''
+
+'''Use Query as the default value
+@app.get("/items/")
+async def read_items(q: Optional[str] = Query(None, max_length=50)):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+'''
+
+'''Add more validations
+@app.get("/items/")
+async def read_items(q: Optional[str] = Query(None, min_length=3, max_length=50)):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+'''
+
+
+'''Add regular expressions
 @app.get("/items/")
 async def read_items(q: Optional[str] = Query('item', min_length=3, max_length=50, regex="^item$")):
     results = {"items": [{"item_id":"Foo"}, {"item_id":"Bar"}]}
     if q:
         results.update({"q":q})
     return results
+'''
 
+'''Default values
+@app.get("/items/")
+async def read_items(q: str = Query("fixedquery", min_length=3)):
+    results = {"items": [{"item_id":"Foo"}, {"item_id":"Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+'''
 
+'''Make it required
+@app.get("/items/")
+async def read_items(q: str = Query(..., min_length=3)):
+    results = {"items": [{"item_id": "Foo"}, {"item_id":"Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+'''
+
+'''Query parameter list / multiple values
+@app.get("/items/")
+async def read_items(q: Optional[List[str]] = Query(None)):
+    query_items = {"q" : q}
+    return query_items
+'''
+
+'''Query parameter list / multiple values with defaults
+@app.get("/items/")
+async def read_items(q: List[str] = Query(["foo", "bar"])):
+    query_items = {"q": q}
+    return query_items
+'''
+
+''' Declare more metadata
+@app.get("/items/")
+async def read_items(
+    q: Optional[str] = Query(
+        None, 
+        title = "Query string",
+        description="Query string for the items to search the database that have a good match",
+        min_length = 3,
+    )
+):
+    results = {"items": [{"items_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+'''
+
+'''Alias parameters
+@app.get("/items/")
+async def read_items(q: Optional[str] = Query(None, alias="item-query")):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+'''
+
+# Deprecating parameters
+@app.get("/items/")
+async def read_items(
+    q: Optional[str] = Query(
+        None,
+        alias="item-query",
+        title="Query string",
+        description="Query string for the items to search in the database that have a good match",
+        min_length=3,
+        max_length=50,
+        regex="^fixedquery$",
+        deprecated=True,
+    )
+):
+    results = {"item": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update(({"q": q}))
+    return results
